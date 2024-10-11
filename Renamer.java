@@ -68,21 +68,17 @@ public class Renamer {
         IRRow curr = tail;
         int index = ops - 1;
         while (curr != null) {
-
             // System.out.println("Before: " + Arrays.toString(SRtoVR) + " " + Arrays.toString(lu));
             if (curr.opcode >= LOAD && curr.opcode <= RSHIFT) {
                 if (curr.opcode == STORE) {
                     use(curr.op1, index);
                     use(curr.op3, index);
-                }
-                if (curr.opcode == LOAD) {
+                } else if (curr.opcode == LOAD) {
                     define(curr.op3, index);
                     use(curr.op1, index);
-                }
-                if (curr.opcode == LOADI) {
+                } else if (curr.opcode == LOADI) {
                     define(curr.op3, index);
-                }
-                if (curr.opcode >= ADD && curr.opcode <= RSHIFT) {
+                } else if (curr.opcode >= ADD && curr.opcode <= RSHIFT) {
                     define(curr.op3, index);
                     use(curr.op1, index);
                     use(curr.op2, index);
