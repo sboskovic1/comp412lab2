@@ -1,7 +1,6 @@
 public class Main {
     public static void main(String[] args) {
 
-
         final String helpMessage = "Stefan Boskovic: COMP 412 Allocator (lab 2)\r\n" + //
                         "Command Syntax:\r\n" + //
                         "        412alloc [f] filename\r\n" + //
@@ -35,7 +34,6 @@ public class Main {
         } else {   
             parser = Frontend.run("-p", args[0]);
         }
-
 
         Renamer renamer = new Renamer(parser.head, parser.tail, parser.operations, regs, parser.maxReg);
 

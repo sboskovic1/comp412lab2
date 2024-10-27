@@ -1,0 +1,36 @@
+Lab 2 Autotimer: using Scalability SLOCs blocks
+
+Gathering operation counts with lab2 simulator.
+
+=======================================================================
+Testing submission: sb121.tar
+Name: Stefan Boskovic, NetID: sb121	Date From Files: 2024-10-27
+
+--- building executable ---
+rm -f *.class
+javac -g *.java
+--- built executable; should be ready to run ---
+
+Testing Scalability:	(minimum time of 5 runs)
+
+	T1k.i:  	2.6679 seconds
+	T2k.i:  	2.5913 seconds
+	T4k.i:  	2.9024 seconds
+	T8k.i:  	2.8383 seconds
+	T16k.i:  	3.2166 seconds
+	T32k.i:  	3.3907 seconds
+	T64k.i:  	5.2624 seconds
+	T128k.i:  	11.304 seconds
+ 
+Scaling score is 	0.0
+	Timing results need to be examined manually.
+
+Efficiency score is 	0.96	( java )
+
+	Anomalous behavior: 2 inputs showed no growth
+
+finished timing run on submission sb121.tar
+=======================================================================
+
+Timing run complete.
+

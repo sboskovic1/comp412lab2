@@ -1,5 +1,4 @@
-import java.util.Arrays;
-import java.util.ArrayList;
+import java.util.*;
 
 public class Allocator {
 
@@ -25,12 +24,8 @@ public class Allocator {
     private ArrayList<Integer> regStack;
     private int marked;
     private StringBuilder sb;
-
-    long spillTime = 0;
-    long totalTime = 0;
-    long restoreTime = 0;
-    long freeTime = 0;
-    long getPRTime = 0;
+    private int currSpillLoc;
+    private Map<Integer, Integer> spillMap;
 
     public Allocator(IRRow head, int maxPR, int maxVR, int maxLive, int spill) {
         this.maxLive = maxLive > maxPR ? 1 : 0;
@@ -57,18 +52,21 @@ public class Allocator {
         this.restoreRow = null;
         this.marked = -1;
         this.sb = new StringBuilder();
+        this.spillMap = new HashMap<Integer, Integer>(maxVR);
+        this.currSpillLoc = 0;
     }
 
     public void allocate() {
         IRRow ir = head;
-        long currTime = System.currentTimeMillis();
         while (ir != null) {
             if (ir.opcode >= LOAD && ir.opcode <= RSHIFT) {
-                if (ir.opcode == STORE) {
+                if (ir.opcode >= ADD && ir.opcode <= RSHIFT) {
                     ir.op1.PR = getPR(ir.op1.VR, ir.op1.NU, ir);
                     marked = ir.op1.PR;
-                    ir.op3.PR = getPR(ir.op3.VR, ir.op3.NU, ir);
+                    ir.op2.PR = getPR(ir.op2.VR, ir.op2.NU, ir);
                     free(ir.op1);
+                    free(ir.op2);
+                    ir.op3.PR = getPR(ir.op3.VR, ir.op3.NU, ir);
                     free(ir.op3);
                 } else if (ir.opcode == LOAD) {
                     ir.op1.PR = getPR(ir.op1.VR, ir.op1.NU, ir);
@@ -78,13 +76,11 @@ public class Allocator {
                 } else if (ir.opcode == LOADI) {
                     ir.op3.PR = getPR(ir.op3.VR, ir.op3.NU, ir);
                     free(ir.op3);
-                } else if (ir.opcode >= ADD && ir.opcode <= RSHIFT) {
+                } else if (ir.opcode == STORE) {
                     ir.op1.PR = getPR(ir.op1.VR, ir.op1.NU, ir);
                     marked = ir.op1.PR;
-                    ir.op2.PR = getPR(ir.op2.VR, ir.op2.NU, ir);
-                    free(ir.op1);
-                    free(ir.op2);
                     ir.op3.PR = getPR(ir.op3.VR, ir.op3.NU, ir);
+                    free(ir.op1);
                     free(ir.op3);
                 }
             }
@@ -93,7 +89,6 @@ public class Allocator {
             marked = -1;
         }
         System.out.println(sb.toString());
-        System.out.println("Time: " + (System.currentTimeMillis() - currTime) + " ms");
     }
 
     public int getPR(int vr, int nu, IRRow ir) {
@@ -102,12 +97,11 @@ public class Allocator {
             return this.vr[vr];
         }
         int spillIdx = -1;
-        for (int i = 0; i < spill.length; i++) {
-            if (spill[i] == vr) {
-                spillIdx = i;
-                break;
-            }
+
+        if (spillMap.keySet().contains(vr)) {
+            spillIdx = spillMap.get(vr);
         }
+
         if (spillIdx != -1) {
             restoreRow = restore(vr, ir, spillIdx);
             if (restoreRow.next.op3.PR == -1) {
@@ -130,12 +124,10 @@ public class Allocator {
     }
 
     public void free(Operant op) {
-        long time;
         if (op.NU == -1) {
             int pr = vr[op.VR];
             this.pr[pr] = -1;
             this.vr[op.VR] = -1;
-            // nu[op.VR] = -1;
             regStack.add(pr);
         }
     }
@@ -143,26 +135,30 @@ public class Allocator {
     public int spill(int vr, IRRow ir) {
         int target = -1;
         int spillIdx = -1;
-        for (int i = 0; i < nu.length; i++) {
-            if (i != vr && this.vr[i] != marked) {
+        for (int i = 0; i < pr.length; i++) {
+            if (pr[i] != vr && i != marked) {
                 if (target == -1) {
                     target = i;
                 } else {
-                    target = nu[i] > nu[target] ? i : target;
+                    target = nu[pr[i]] > nu[pr[target]] ? i : target;
                 }
             }
         }
+        target = pr[target];
         nu[target] = -1;
         pr[this.vr[target]] = vr;
         this.vr[vr] = this.vr[target];
         this.vr[target] = -1;
-        for (int i = 0; i < spill.length; i++) {
-            if (spill[i] == target || spill[i] == -1) { 
-                spill[i] = target;
-                spillIdx = i;
-                break;
-            }
+
+        if (spillMap.keySet().contains(target)) {
+            spillIdx = spillMap.get(target);
+        } else {
+            spillIdx = currSpillLoc;
+            spill[currSpillLoc] = target;
+            spillMap.put(target, currSpillLoc);
+            currSpillLoc++;
         }
+
         IRRow spillRow = new IRRow(LOADI, spillLoc + 4 * spillIdx, pr.length);
 
         IRRow storeRow = new IRRow(STORE, this.vr[vr], pr.length);
@@ -177,7 +173,6 @@ public class Allocator {
     }
 
     public IRRow restore(int vr, IRRow ir, int idx) {   
-
         IRRow first = new IRRow(LOADI, spillLoc + idx * 4, pr.length);
         int newPR = -1;
         if (regStack.size() > 0) {
@@ -185,37 +180,13 @@ public class Allocator {
             pr[newPR] = vr;
             this.vr[vr] = newPR;
         }
-        // for (int i = 0; i < pr.length; i++) {
-        //     if (pr[i] == -1) {
-        //         pr[i] = vr;
-        //         this.vr[vr] = i;
-        //         newPR = i;
-        //         break;
-        //     }
-        // }
         IRRow second = new IRRow(LOAD, pr.length, newPR);
         first.next = second;
         second.prev = first;
-        // spill[idx] = -1;
         return first;
     }
 
     public void printRenamedIR() {
-        // IRRow curr = head;
-        // while (curr != null) {
-        //     if (curr.opcode == LOADI) {
-        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " " + curr.op1.SR + " => r" + curr.op3.PR);
-        //     } else if (curr.opcode == STORE || curr.opcode == LOAD) {
-        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + " => r" + curr.op3.PR);
-        //     } else if (curr.opcode == ADD || curr.opcode == SUB || curr.opcode == MULT || curr.opcode == LSHIFT || curr.opcode == RSHIFT) {
-        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + ", r" + curr.op2.PR + " => r" + curr.op3.PR);
-        //     } else if (curr.opcode == OUTPUT) {
-        //         System.out.println("output " + curr.op1.SR);
-        //     } else if (curr.opcode == NOP) {
-        //         System.out.println("nop");
-        //     }
-        //     curr = curr.next;
-        // }
         IRRow curr = head;
         while (curr != null) {
             if (curr.opcode == LOADI) {
@@ -254,20 +225,6 @@ public class Allocator {
 
     public void printRenamedRows(IRRow row) {
         // IRRow curr = row;
-        // while (curr != null) {
-        //     if (curr.opcode == LOADI) {
-        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " " + curr.op1.SR + " => r" + curr.op3.PR);
-        //     } else if (curr.opcode == STORE || curr.opcode == LOAD) {
-        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + " => r" + curr.op3.PR);
-        //     } else if (curr.opcode == ADD || curr.opcode == SUB || curr.opcode == MULT || curr.opcode == LSHIFT || curr.opcode == RSHIFT) {
-        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + ", r" + curr.op2.PR + " => r" + curr.op3.PR);
-        //     } else if (curr.opcode == OUTPUT) {
-        //         System.out.println("output " + curr.op1.SR);
-        //     } else if (curr.opcode == NOP) {
-        //         System.out.println("nop");
-        //     }
-        //     curr = curr.next;
-        // }
         IRRow curr = row;
         while (curr != null) {
             if (curr.opcode == LOADI) {
@@ -305,18 +262,6 @@ public class Allocator {
     }
 
     public void printRenamedRow(IRRow row) {
-        // IRRow curr = row;
-        // if (curr.opcode == LOADI) {
-        //     System.out.println(Renamer.tokenMap.get(curr.opcode) + " " + curr.op1.SR + " => r" + curr.op3.PR);
-        // } else if (curr.opcode == STORE || curr.opcode == LOAD) {
-        //     System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + " => r" + curr.op3.PR);
-        // } else if (curr.opcode == ADD || curr.opcode == SUB || curr.opcode == MULT || curr.opcode == LSHIFT || curr.opcode == RSHIFT) {
-        //     System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + ", r" + curr.op2.PR + " => r" + curr.op3.PR);
-        // } else if (curr.opcode == OUTPUT) {
-        //     System.out.println("output " + curr.op1.SR);
-        // } else if (curr.opcode == NOP) {
-        //     System.out.println("nop");
-        // }
         IRRow curr = row;
         if (curr.opcode == LOADI) {
             sb.append(Renamer.tokenMap.get(curr.opcode))
