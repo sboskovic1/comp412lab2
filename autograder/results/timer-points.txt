@@ -2,4 +2,4 @@ Lab 2 Autotimer Results
 Import into Excel with tab separators
 
 NetId	Name	T1k	T2k	T4k	T8k	T16k	T32k	T64k	T128k	Lang.	Scaling Pts	Eff Pts %
-sb121	Stefan Boskovic	4.6733	4.8825	4.1963	4.4767	4.7510	4.8476	4.9896	5.3649	java 	 linear-w-1-jump anomaly	10.0	9.15	*
+sb121	Stefan Boskovic	1.4403	1.3937	1.4269	1.4135	1.4582	1.5237	1.5350	1.6991	java 	 anomaly anomaly	0.0	10.0	*

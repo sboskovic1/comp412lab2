@@ -26,6 +26,7 @@ public class Allocator {
     private StringBuilder sb;
     private int currSpillLoc;
     private Map<Integer, Integer> spillMap;
+    private int ops;
 
     public Allocator(IRRow head, int maxPR, int maxVR, int maxLive, int spill) {
         this.maxLive = maxLive > maxPR ? 1 : 0;
@@ -54,11 +55,13 @@ public class Allocator {
         this.sb = new StringBuilder();
         this.spillMap = new HashMap<Integer, Integer>(maxVR);
         this.currSpillLoc = 0;
+        this.ops = 0;
     }
 
     public void allocate() {
         IRRow ir = head;
         while (ir != null) {
+            ops++;
             if (ir.opcode >= LOAD && ir.opcode <= RSHIFT) {
                 if (ir.opcode >= ADD && ir.opcode <= RSHIFT) {
                     ir.op1.PR = getPR(ir.op1.VR, ir.op1.NU, ir);
@@ -135,6 +138,8 @@ public class Allocator {
     public int spill(int vr, IRRow ir) {
         int target = -1;
         int spillIdx = -1;
+        int dist;
+
         for (int i = 0; i < pr.length; i++) {
             if (pr[i] != vr && i != marked) {
                 if (target == -1) {
@@ -144,6 +149,7 @@ public class Allocator {
                 }
             }
         }
+
         target = pr[target];
         nu[target] = -1;
         pr[this.vr[target]] = vr;
@@ -157,13 +163,12 @@ public class Allocator {
             spill[currSpillLoc] = target;
             spillMap.put(target, currSpillLoc);
             currSpillLoc++;
+            IRRow spillRow = new IRRow(LOADI, spillLoc + 4 * spillIdx, pr.length);
+            IRRow storeRow = new IRRow(STORE, this.vr[vr], pr.length);
+            spillRow.next = storeRow;
+            printRenamedRows(spillRow);
         }
 
-        IRRow spillRow = new IRRow(LOADI, spillLoc + 4 * spillIdx, pr.length);
-
-        IRRow storeRow = new IRRow(STORE, this.vr[vr], pr.length);
-        spillRow.next = storeRow;
-        printRenamedRows(spillRow);
         if (restoreRow != null) {
             restoreRow.next.op3.PR = this.vr[vr];
             printRenamedRows(restoreRow);

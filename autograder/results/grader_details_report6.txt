@@ -1,4 +1,4 @@
 Comp 412, Lab 2, Results for block 'report6.i'
 Import into Excel with tab separators
 NetID	Name	3	4	5	6	8	12	16
-sb121	Stefan Boskovic	468	390	329	273	217	171	129
+sb121	Stefan Boskovic	437	381	323	261	217	171	129

@@ -1,6 +1,6 @@
 CodeCheck2 on '412alloc' for user sb121
 Using '/tmp/sb121-code-check-2' for temporary storage
-Run on 10-27-24 at 17:13:07 on host zorite.clear.rice.edu
+Run on 10-27-24 at 18:14:56 on host opal.clear.rice.edu
 Testing 'cc1.i'
 	k = 5	 correct in 31 cycles
 	k = 7	 correct in 21 cycles

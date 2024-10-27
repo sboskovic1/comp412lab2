@@ -13,19 +13,19 @@ javac -g *.java
 
 Testing Scalability:	(minimum time of 5 runs)
 
-	T1k.i:  	2.6679 seconds
-	T2k.i:  	2.5913 seconds
-	T4k.i:  	2.9024 seconds
-	T8k.i:  	2.8383 seconds
-	T16k.i:  	3.2166 seconds
-	T32k.i:  	3.3907 seconds
-	T64k.i:  	5.2624 seconds
-	T128k.i:  	11.304 seconds
+	T1k.i:  	1.4403 seconds
+	T2k.i:  	1.3937 seconds
+	T4k.i:  	1.4269 seconds
+	T8k.i:  	1.4135 seconds
+	T16k.i:  	1.4582 seconds
+	T32k.i:  	1.5237 seconds
+	T64k.i:  	1.5350 seconds
+	T128k.i:  	1.6991 seconds
  
 Scaling score is 	0.0
 	Timing results need to be examined manually.
 
-Efficiency score is 	0.96	( java )
+Efficiency score is 	10.0	( java )
 
 	Anomalous behavior: 2 inputs showed no growth
 
