@@ -1,2 +1,3 @@
 #!/bin/bash
-tar cvf ./sb121.tar .
+rm ./autograder/TarFileGoesHere/sb121.tar
+tar cvf ./autograder/TarFileGoesHere/sb121.tar Makefile *.java README.md 412alloc

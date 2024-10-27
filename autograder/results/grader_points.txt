@@ -1,0 +1,5 @@
+COMP 412, Lab 2 Autograder, Points by NetID
+Import into Excel with tab separators
+
+Netid	Name	Conforms	Correctness	Effectiveness	Date	Days Late
+sb121	Stefan Boskovic	0	30.0	12.23	2024-10-27	4

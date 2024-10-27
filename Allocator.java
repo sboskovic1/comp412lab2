@@ -24,15 +24,20 @@ public class Allocator {
     private IRRow restoreRow;
     private ArrayList<Integer> regStack;
     private int marked;
+    private StringBuilder sb;
 
-    int ops = 0;
+    long spillTime = 0;
+    long totalTime = 0;
+    long restoreTime = 0;
+    long freeTime = 0;
+    long getPRTime = 0;
 
     public Allocator(IRRow head, int maxPR, int maxVR, int maxLive, int spill) {
         this.maxLive = maxLive > maxPR ? 1 : 0;
         this.pr = new int[maxPR - this.maxLive];
         this.vr = new int[maxVR];
         this.nu = new int[maxVR];
-        this.spill = new int[maxVR - maxLive];
+        this.spill = new int[maxVR];
         for (int i = 0; i < vr.length; i++) {
             vr[i] = -1;
             nu[i] = -1;
@@ -51,12 +56,13 @@ public class Allocator {
         }
         this.restoreRow = null;
         this.marked = -1;
+        this.sb = new StringBuilder();
     }
 
     public void allocate() {
         IRRow ir = head;
+        long currTime = System.currentTimeMillis();
         while (ir != null) {
-            ops++;
             if (ir.opcode >= LOAD && ir.opcode <= RSHIFT) {
                 if (ir.opcode == STORE) {
                     ir.op1.PR = getPR(ir.op1.VR, ir.op1.NU, ir);
@@ -86,7 +92,8 @@ public class Allocator {
             ir = ir.next;
             marked = -1;
         }
-        // head.printIR();
+        System.out.println(sb.toString());
+        System.out.println("Time: " + (System.currentTimeMillis() - currTime) + " ms");
     }
 
     public int getPR(int vr, int nu, IRRow ir) {
@@ -123,6 +130,7 @@ public class Allocator {
     }
 
     public void free(Operant op) {
+        long time;
         if (op.NU == -1) {
             int pr = vr[op.VR];
             this.pr[pr] = -1;
@@ -133,11 +141,15 @@ public class Allocator {
     }
 
     public int spill(int vr, IRRow ir) {
-        int target = 0;
+        int target = -1;
         int spillIdx = -1;
         for (int i = 0; i < nu.length; i++) {
             if (i != vr && this.vr[i] != marked) {
-                target = nu[i] > nu[target] ? i : target;
+                if (target == -1) {
+                    target = i;
+                } else {
+                    target = nu[i] > nu[target] ? i : target;
+                }
             }
         }
         nu[target] = -1;
@@ -165,10 +177,6 @@ public class Allocator {
     }
 
     public IRRow restore(int vr, IRRow ir, int idx) {   
-        // System.out.println("restore");
-        // System.out.println("spill: " + idx + " " + Arrays.toString(spill));
-        // System.out.println("pr: " + Arrays.toString(pr));
-        // System.out.println("vr: " + Arrays.toString(this.vr));
 
         IRRow first = new IRRow(LOADI, spillLoc + idx * 4, pr.length);
         int newPR = -1;
@@ -193,53 +201,152 @@ public class Allocator {
     }
 
     public void printRenamedIR() {
+        // IRRow curr = head;
+        // while (curr != null) {
+        //     if (curr.opcode == LOADI) {
+        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " " + curr.op1.SR + " => r" + curr.op3.PR);
+        //     } else if (curr.opcode == STORE || curr.opcode == LOAD) {
+        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + " => r" + curr.op3.PR);
+        //     } else if (curr.opcode == ADD || curr.opcode == SUB || curr.opcode == MULT || curr.opcode == LSHIFT || curr.opcode == RSHIFT) {
+        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + ", r" + curr.op2.PR + " => r" + curr.op3.PR);
+        //     } else if (curr.opcode == OUTPUT) {
+        //         System.out.println("output " + curr.op1.SR);
+        //     } else if (curr.opcode == NOP) {
+        //         System.out.println("nop");
+        //     }
+        //     curr = curr.next;
+        // }
         IRRow curr = head;
         while (curr != null) {
             if (curr.opcode == LOADI) {
-                System.out.println(Renamer.tokenMap.get(curr.opcode) + " " + curr.op1.SR + " => r" + curr.op3.PR);
+                sb.append(Renamer.tokenMap.get(curr.opcode))
+                .append(" ")
+                .append(curr.op1.SR)
+                .append(" => r")
+                .append(curr.op3.PR)
+                .append("\n");
             } else if (curr.opcode == STORE || curr.opcode == LOAD) {
-                System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + " => r" + curr.op3.PR);
+                sb.append(Renamer.tokenMap.get(curr.opcode))
+                .append(" r")
+                .append(curr.op1.PR)
+                .append(" => r")
+                .append(curr.op3.PR)
+                .append("\n");
             } else if (curr.opcode == ADD || curr.opcode == SUB || curr.opcode == MULT || curr.opcode == LSHIFT || curr.opcode == RSHIFT) {
-                System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + ", r" + curr.op2.PR + " => r" + curr.op3.PR);
+                sb.append(Renamer.tokenMap.get(curr.opcode))
+                .append(" r")
+                .append(curr.op1.PR)
+                .append(", r")
+                .append(curr.op2.PR)
+                .append(" => r")
+                .append(curr.op3.PR)
+                .append("\n");
             } else if (curr.opcode == OUTPUT) {
-                System.out.println("output " + curr.op1.SR);
+                sb.append("output ")
+                .append(curr.op1.SR)
+                .append("\n");
             } else if (curr.opcode == NOP) {
-                System.out.println("nop");
+                sb.append("nop\n");
             }
             curr = curr.next;
         }
     }
 
     public void printRenamedRows(IRRow row) {
+        // IRRow curr = row;
+        // while (curr != null) {
+        //     if (curr.opcode == LOADI) {
+        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " " + curr.op1.SR + " => r" + curr.op3.PR);
+        //     } else if (curr.opcode == STORE || curr.opcode == LOAD) {
+        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + " => r" + curr.op3.PR);
+        //     } else if (curr.opcode == ADD || curr.opcode == SUB || curr.opcode == MULT || curr.opcode == LSHIFT || curr.opcode == RSHIFT) {
+        //         System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + ", r" + curr.op2.PR + " => r" + curr.op3.PR);
+        //     } else if (curr.opcode == OUTPUT) {
+        //         System.out.println("output " + curr.op1.SR);
+        //     } else if (curr.opcode == NOP) {
+        //         System.out.println("nop");
+        //     }
+        //     curr = curr.next;
+        // }
         IRRow curr = row;
         while (curr != null) {
             if (curr.opcode == LOADI) {
-                System.out.println(Renamer.tokenMap.get(curr.opcode) + " " + curr.op1.SR + " => r" + curr.op3.PR);
+                sb.append(Renamer.tokenMap.get(curr.opcode))
+                .append(" ")
+                .append(curr.op1.SR)
+                .append(" => r")
+                .append(curr.op3.PR)
+                .append("\n");
             } else if (curr.opcode == STORE || curr.opcode == LOAD) {
-                System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + " => r" + curr.op3.PR);
+                sb.append(Renamer.tokenMap.get(curr.opcode))
+                .append(" r")
+                .append(curr.op1.PR)
+                .append(" => r")
+                .append(curr.op3.PR)
+                .append("\n");
             } else if (curr.opcode == ADD || curr.opcode == SUB || curr.opcode == MULT || curr.opcode == LSHIFT || curr.opcode == RSHIFT) {
-                System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + ", r" + curr.op2.PR + " => r" + curr.op3.PR);
+                sb.append(Renamer.tokenMap.get(curr.opcode))
+                .append(" r")
+                .append(curr.op1.PR)
+                .append(", r")
+                .append(curr.op2.PR)
+                .append(" => r")
+                .append(curr.op3.PR)
+                .append("\n");
             } else if (curr.opcode == OUTPUT) {
-                System.out.println("output " + curr.op1.SR);
+                sb.append("output ")
+                .append(curr.op1.SR)
+                .append("\n");
             } else if (curr.opcode == NOP) {
-                System.out.println("nop");
+                sb.append("nop\n");
             }
             curr = curr.next;
         }
     }
 
     public void printRenamedRow(IRRow row) {
+        // IRRow curr = row;
+        // if (curr.opcode == LOADI) {
+        //     System.out.println(Renamer.tokenMap.get(curr.opcode) + " " + curr.op1.SR + " => r" + curr.op3.PR);
+        // } else if (curr.opcode == STORE || curr.opcode == LOAD) {
+        //     System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + " => r" + curr.op3.PR);
+        // } else if (curr.opcode == ADD || curr.opcode == SUB || curr.opcode == MULT || curr.opcode == LSHIFT || curr.opcode == RSHIFT) {
+        //     System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + ", r" + curr.op2.PR + " => r" + curr.op3.PR);
+        // } else if (curr.opcode == OUTPUT) {
+        //     System.out.println("output " + curr.op1.SR);
+        // } else if (curr.opcode == NOP) {
+        //     System.out.println("nop");
+        // }
         IRRow curr = row;
         if (curr.opcode == LOADI) {
-            System.out.println(Renamer.tokenMap.get(curr.opcode) + " " + curr.op1.SR + " => r" + curr.op3.PR);
+            sb.append(Renamer.tokenMap.get(curr.opcode))
+            .append(" ")
+            .append(curr.op1.SR)
+            .append(" => r")
+            .append(curr.op3.PR)
+            .append("\n");
         } else if (curr.opcode == STORE || curr.opcode == LOAD) {
-            System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + " => r" + curr.op3.PR);
+            sb.append(Renamer.tokenMap.get(curr.opcode))
+            .append(" r")
+            .append(curr.op1.PR)
+            .append(" => r")
+            .append(curr.op3.PR)
+            .append("\n");
         } else if (curr.opcode == ADD || curr.opcode == SUB || curr.opcode == MULT || curr.opcode == LSHIFT || curr.opcode == RSHIFT) {
-            System.out.println(Renamer.tokenMap.get(curr.opcode) + " r" + curr.op1.PR + ", r" + curr.op2.PR + " => r" + curr.op3.PR);
+            sb.append(Renamer.tokenMap.get(curr.opcode))
+            .append(" r")
+            .append(curr.op1.PR)
+            .append(", r")
+            .append(curr.op2.PR)
+            .append(" => r")
+            .append(curr.op3.PR)
+            .append("\n");
         } else if (curr.opcode == OUTPUT) {
-            System.out.println("output " + curr.op1.SR);
+            sb.append("output ")
+            .append(curr.op1.SR)
+            .append("\n");
         } else if (curr.opcode == NOP) {
-            System.out.println("nop");
+            sb.append("nop\n");
         }
     }
 }

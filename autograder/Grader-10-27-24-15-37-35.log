@@ -1,0 +1,36 @@
+==================================================
+Running lab2_ref to establish effectiveness baselines
+Lab 2 Autograder: Using blocks in ./auto_grade/blocks/
+
+==================================================
+Name: Stefan Boskovic	NetID: sb121	Date From Files:  2024-10-27
+
+------------------------------------------------------------
+Output from building executable, if necessary
+--- building executable ---
+rm -f *.class
+javac -g *.java
+--- built executable; should be ready to run ---
+
+-----------------------------------------------------------
+
+
+Result is a set of (k, cycle) pairs for each test block
+
+T001k.i:	{3: 6949, 4: 6534, 5: 6204, 6: 5874, 8: 5214, 12: 3918, 16: 2622}
+report1.i:	{3: 301, 4: 232, 5: 186, 6: 154, 8: 116, 12: 84, 16: 54}
+report2.i:	{3: 326, 4: 192, 5: 126, 6: 116, 8: 104, 12: 80, 16: 56}
+report3.i:	{3: 431, 4: 350, 5: 298, 6: 260, 8: 217, 12: 155, 16: 118}
+report4.i:	{3: 273, 4: 260, 5: 248, 6: 236, 8: 212, 12: 164, 16: 116}
+report5.i:	{3: 138, 4: 114, 5: 86, 6: 68, 8: 48, 12: 30, 16: 30}
+report6.i:	{3: 468, 4: 390, 5: 329, 6: 273, 8: 217, 12: 171, 16: 129}
+report7.i:	{3: 201, 4: 156, 5: 129, 6: 112, 8: 77, 12: 55, 16: 44}
+
+Correctness points:  	30.0
+Effectiveness points:	12.23
+
+Finished submission  sb121.tar
+==================================================
+
+Grading run complete.
+
