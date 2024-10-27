@@ -49,6 +49,8 @@ public class Renamer {
     int[] SRtoVR;
     int[] lu;
     int vr;
+    int maxLive;
+    int live;
 
     public Renamer(IRRow head, IRRow tail, int ops, int maxRegs, int maxReg) {
         this.head = head;
@@ -87,10 +89,12 @@ public class Renamer {
             // System.out.println("After: " + Arrays.toString(SRtoVR) + " " + Arrays.toString(lu));
             curr = curr.prev;
             index--;
+            maxLive = Math.max(maxLive, live);
         }
     }
 
     public void define(Operant op, int index) {
+        live--;
         if (SRtoVR[op.SR] == -1) {
             SRtoVR[op.SR] = vr;
             vr++;
@@ -105,6 +109,7 @@ public class Renamer {
         if (SRtoVR[op.SR] == -1) {
             SRtoVR[op.SR] = vr;
             vr++;
+            live++;
         }
         op.VR = SRtoVR[op.SR];
         op.NU = lu[op.SR];
@@ -128,5 +133,5 @@ public class Renamer {
             curr = curr.next;
         }
     }
-
+    
 }

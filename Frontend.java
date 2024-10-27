@@ -13,16 +13,16 @@ public class Frontend {
                 "        -p       invokes parser and reports on success or failure\r\n" + //
                 "        -r       prints human readable version of parser's IR\r\n" + //
                 "If none is specified, the default action is '-p'.";
-    public static Parser run(String[] args) {
+    public static Parser run(String token, String file) {
 
-        if (args[0].equals("-h")) {
+        if (token.equals("-h")) {
             System.out.println(helpMessage);
             return null;
         } 
 
         Parser parser = null;
         int flag = -1;
-        switch (args[0]) {
+        switch (token) {
             case "-s":
                 flag = 0;
                 break;
@@ -38,9 +38,9 @@ public class Frontend {
         }
         try {
             if (flag == -1) {
-                parser = new Parser(args[0], 1);
+                parser = new Parser(file, 1);
             } else {
-                parser = new Parser(args[1], flag);
+                parser = new Parser(file, flag);
             }
 
         } catch (RuntimeException e) {

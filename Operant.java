@@ -11,6 +11,13 @@ public class Operant {
         NU = -1;
     }
 
+    public Operant(int sr, int pr) {
+        SR = pr;
+        VR = -1;
+        PR = pr;
+        NU = -1;
+    }
+
     public String toString() {
 
         return "[SR: " + (SR == -1 ? "-" : SR)  + 
